@@ -52,7 +52,7 @@ components:
             ports:
                 - '3000:3000'
             environment:
-                APPSETTING_BASEURL: 'https://ocregistry-{{env.unique}}.bunnyenv.com'
+                APPSETTING_BASEURL: 'https://ocregistry-{{ env.base_domain }}'
                 APPSETTING_BLOB_URL: 'https://{{components.infra.exported.ACCOUNT_NAME}}.blob.core.windows.net/'
                 APPSETTING_CDN_ENDPOINT: 'https://{{components.infra.exported.ACCOUNT_NAME}}.blob.core.windows.net/'
                 APPSETTING_REGISTRY_PASSWORD: '{{env.vars.oc_password}}'
@@ -61,12 +61,12 @@ components:
                 APPSETTING_STORAGE_ACCOUNT_NAME: '{{components.infra.exported.ACCOUNT_NAME}}'
         hosts:
             -
-                hostname: 'ocregistry-{{env.unique}}.bunnyenv.com'
+                hostname: 'ocregistry-{{ env.base_domain }}'
                 path: /registry/
                 servicePort: 3000
                 public: true
             -
-                hostname: 'main-{{env.unique}}.bunnyenv.com'
+                hostname: 'main-{{ env.base_domain }}'
                 path: /registry/
                 servicePort: 3000
                 public: true
@@ -87,7 +87,7 @@ components:
                 ASPNETCORE_URLS: 'http://+:9000'
         hosts:
             -
-                hostname: 'main-{{env.unique}}.bunnyenv.com'
+                hostname: 'main-{{ env.base_domain }}'
                 path: /
                 servicePort: 9000
                 public: true
@@ -109,12 +109,12 @@ components:
                 ConnectionStrings__ServiceBus: '{{components.infra.exported.SERVICEBUS_CONNECTIONSTRING}}'
         hosts:
             -
-                hostname: 'orders-{{env.unique}}.bunnyenv.com'
+                hostname: 'orders-{{ env.base_domain }}'
                 path: /
                 servicePort: 5223
                 public: true
             -
-                hostname: 'main-{{env.unique}}.bunnyenv.com'
+                hostname: 'main-{{ env.base_domain }}'
                 path: /orders/
                 servicePort: 5223
                 public: true
@@ -134,12 +134,12 @@ components:
                 SERVICEBUS_CONNECTIONSTRING: '{{components.infra.exported.SERVICEBUS_CONNECTIONSTRING}}'
         hosts:
             -
-                hostname: 'payments-{{env.unique}}.bunnyenv.com'
+                hostname: 'payments-{{ env.base_domain }}'
                 path: /
                 servicePort: 5000
                 public: true
             -
-                hostname: 'main-{{env.unique}}.bunnyenv.com'
+                hostname: 'main-{{ env.base_domain }}'
                 path: /pay/
                 servicePort: 5000
                 public: true
