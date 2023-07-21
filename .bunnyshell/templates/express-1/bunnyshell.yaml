@@ -1,122 +1,108 @@
-# yaml-language-server: $schema=./bunnyshell.schema.json
-version: v1
 kind: Environment
-name: my-env
-type: ephemeral # primary | ephemeral
-deployment:
-  strategy:
-    type: RollingUpdate
-    maxUnavailable: 2 # optional, the default value is 25%
-    maxSurge: 50% # optional, the default value is 25%
+name: temp
+type: primary
 components:
-  - kind: Service
-    version: v1
-    name: nginx
-    gitRepo: git@...
-    gitBranch: master
-    gitApplicationPath: / # optional; for monorepo apps
-    gitDockerComposePath: / # the path of the docker-compose.yaml inside the git_repo
-    dockerCompose:
-      build:
-        context: .docker/nginx
-        dockerfile: Dockerfile
-        args:
-          buildno: 1
-    pod:
-      init_containers:
-        -
-          from: frontend
-          name: frontend # the name of the container
-          shared_paths:
+    -
+        kind: Service
+        name: nginx
+        gitRepo: 'https://github.com/bns-hack/qbikez_bunnyshell-templates.git'
+        gitBranch: main
+        gitApplicationPath: /
+        dockerCompose:
+            build:
+                context: .docker/nginx
+                dockerfile: Dockerfile
+                args:
+                    buildno: 1
+            ports:
+                - 8080
+        pod:
+            init_containers:
+                -
+                    from: frontend
+                    name: frontend
+                    shared_paths:
+                        -
+                            path: /var/www/public
+                            target:
+                                path: /var/www/html/public
+                                container: '@parent'
+                            initial_contents: '@self'
+            sidecar_containers:
+                -
+                    from: php
+                    name: php
+        hosts:
             -
-              path: /var/www/public # path on this service container (e.g. frontend)
-              target:
-                container: '@parent'
-                path: /var/www/html/public # path on the pod-colocated service container (e.g. nginx)
-              initial_contents: '@self'
-      sidecar_containers:
-        -
-          from: php
-          name: php # the name of the container
-    hosts: # you can add more
-      - hostname: app # will be suffixed with -${env_unique}.bunnyenv.com
-        path: / # optional
-        servicePort: 8080
-        public: true # will be publicly available, even if the user IP does not exist in security.allowedIps
-
-  - kind: Database
-    name: mysql
-    gitRepo: git@...
-    gitBranch: master
-    gitApplicationPath: / # optional; for monorepo apps
-    gitDockerComposePath: / # the path of the docker-compose.yaml inside the git_repo
-    dockerCompose:
-      build:
-        context: .docker/mysql
-        dockerfile: Dockerfile
-        args:
-          buildno: 1
-    volumes:
-      -
-        name: db-data
-        mount: /var/lib/mysql
-        subPath: ''
-    hosts: []
-  - kind: SidecarContainer
-    version: v1
-    name: php
-    gitRepo: git@...
-    gitBranch: master
-    gitApplicationPath: / # optional; for monorepo apps
-    gitDockerComposePath: / # the path of the docker-compose.yaml inside the git_repo
-    dockerCompose:
-      # image: ... # if present, `image` will be removed, we will build the image and after that we will add the image: with the value from our Amazon ECR
-      build:
-        context: .docker/php
-        dockerfile: Dockerfile
-        args:
-          buildno: 1
-    hosts: # you can add more
-      - hostname: app # will be suffixed with -${env_unique}.bunnyenv.com
-        path: / # optional
-        servicePort: 8080
-
-  - kind: InitContainer
-    version: v1
-    name: frontend
-    gitRepo: git@...
-    gitBranch: master
-    gitApplicationPath: / # optional; for monorepo apps
-    dockerCompose:
-      build:
-        context: frontend
-
+                hostname: 'app-{{ env.base_domain }}'
+                path: /
+                servicePort: 8080
+                public: true
+    -
+        kind: Database
+        name: mysql
+        gitRepo: 'https://github.com/bns-hack/qbikez_bunnyshell-templates.git'
+        gitBranch: main
+        gitApplicationPath: /
+        dockerCompose:
+            build:
+                context: .docker/mysql
+                dockerfile: Dockerfile
+                args:
+                    buildno: 1
+        volumes:
+            -
+                name: db-data
+                mount: /var/lib/mysql
+                subPath: ''
+    -
+        kind: SidecarContainer
+        name: php
+        gitRepo: 'https://github.com/bns-hack/qbikez_bunnyshell-templates.git'
+        gitBranch: main
+        gitApplicationPath: /
+        dockerCompose:
+            build:
+                context: .docker/php
+                dockerfile: Dockerfile
+                args:
+                    buildno: 1
+    -
+        kind: InitContainer
+        name: frontend
+        gitRepo: 'https://github.com/bns-hack/qbikez_bunnyshell-templates.git'
+        gitBranch: main
+        gitApplicationPath: /
+        dockerCompose:
+            build:
+                context: frontend
 security:
-  access:
-    allowedIps: # only IPs in these ranges will be able to access the non-public hosts
-      - '192.168.0.1/24'
-      - '192.12.45.123/32'
-
+    access:
+        allowedIps:
+            - 192.168.0.1/24
+            - 192.12.45.123/32
+        realIpTrustedProxies: null
 volumes:
-  - name: db-data
-    size: 1Gi
-    type: disk
+    -
+        name: db-data
+        size: 1Gi
+        type: disk
 dev:
-  nginx:
-    - containers:
-        nginx:
-          command: ['nginx']
-          syncPaths:
-            - remotePath: /var/www/
-              localPath: ~/project
-          portForwards:
-            - "8080<8080"
-          environment:
-            WHEN_IN_DEV: '{{ env.vars.OTHER_VAR }}'
-          resources:
-              limits:
-                  memory: 750M
-              requests:
-                  cpu: '0.15'
-                  memory: 500M
-                  
+    nginx:
+        -
+            containers:
+                nginx:
+                    command:
+                        - nginx
+                    syncPaths:
+                        -
+                            remotePath: /var/www/
+                            localPath: ~/project
+                    portForwards:
+                        - 8080<8080
+                    resources:
+                        requests:
+                            cpu: '0.15'
+                            memory: 500M
+                        limits:
+                            memory: 750M
